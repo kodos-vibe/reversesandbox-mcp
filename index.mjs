@@ -44,18 +44,50 @@ async function apiRequest(method, path, body) {
   return res.json();
 }
 
+/**
+ * Parse a 402 response to extract payment requirements.
+ * The x402 protocol puts requirements in the `payment-required` header (base64 JSON).
+ */
+function parse402Requirements(headers) {
+  const raw = headers?.get?.("payment-required");
+  if (!raw) return null;
+  try {
+    return JSON.parse(Buffer.from(raw, "base64").toString());
+  } catch {
+    return null;
+  }
+}
+
 const server = new McpServer({
   name: "reversesandbox",
-  version: "0.1.0",
+  version: "0.2.0",
 });
+
+// ── pay ──────────────────────────────────────────────────────────────
 
 server.tool(
   "pay",
-  "Sign an x402 payment to access a pay-per-use API service. Call this when you receive a 402 Payment Required response. Extract the payment recipient (payTo/address), amount (maxAmountRequired), and network from the 402 response body, then call this tool. Returns a payment header to include in your retry request.",
+  `Sign an x402 USDC payment and get a ready-to-use payment header.
+
+WHEN TO USE: When you get a 402 Payment Required response from an x402-enabled API.
+
+HOW TO GET THE PARAMETERS:
+1. The 402 response has a "payment-required" header (base64-encoded JSON)
+2. Decode it to find the "accepts" array — each entry has: payTo, amount, network, asset
+3. Pick the entry matching your preferred network (polygon is recommended)
+4. Pass: to = payTo, amount = the USD equivalent (amount in raw units ÷ 1e6 for USDC), network = chain name
+
+AFTER CALLING: Retry your original request with the header:
+  PAYMENT-SIGNATURE: <the payment_header value returned>
+
+IMPORTANT:
+- Header name is PAYMENT-SIGNATURE (not X-PAYMENT)
+- Use the public URL for services (e.g. https://search.reversesandbox.com/web/search?q=...)
+- Do NOT use localhost URLs — services are remote`,
   {
-    to: z.string().describe("Recipient address (0x-prefixed Ethereum address, from the 402 response)"),
-    amount: z.string().describe('Payment amount in USD (e.g. "0.002", from the 402 response)'),
-    network: z.string().optional().default("base").describe("Network name (base, polygon, arbitrum)"),
+    to: z.string().describe("Recipient address (0x-prefixed, from the 402 accepts[].payTo)"),
+    amount: z.string().describe('Payment amount in USD (e.g. "0.002"). For USDC: raw amount ÷ 1000000'),
+    network: z.string().optional().default("polygon").describe("Chain: polygon (recommended), base, or arbitrum"),
   },
   async ({ to, amount, network }) => {
     try {
@@ -68,7 +100,17 @@ server.tool(
         content: [
           {
             type: "text",
-            text: `Payment signed successfully.\nCost: $${cost}\nRemaining balance: $${balance}\n\nTo complete your request, retry it with this header:\nX-PAYMENT: ${header}\n\nExample:\ncurl -H 'X-PAYMENT: ${header}' <original-url>`,
+            text: [
+              "Payment signed successfully.",
+              `Cost: ${cost}`,
+              `Remaining balance: ${balance}`,
+              "",
+              "Retry your original request with this header:",
+              `PAYMENT-SIGNATURE: ${header}`,
+              "",
+              "Example with curl:",
+              `curl -H 'PAYMENT-SIGNATURE: ${header}' <original-url>`,
+            ].join("\n"),
           },
         ],
       };
@@ -78,20 +120,24 @@ server.tool(
   }
 );
 
+// ── get_balance ──────────────────────────────────────────────────────
+
 server.tool(
   "get_balance",
-  "Check your remaining ReverseSandbox balance. Returns the available balance for paying x402 services.",
+  "Check your remaining ReverseSandbox USD balance for paying x402 services.",
   {},
   async () => {
     try {
       const data = await apiRequest("GET", "/api/balance");
       const balance = data.balance ?? data.amount ?? "unknown";
-      return { content: [{ type: "text", text: `Balance: $${balance}` }] };
+      return { content: [{ type: "text", text: `Balance: ${balance}` }] };
     } catch (err) {
       return { content: [{ type: "text", text: err.message }], isError: true };
     }
   }
 );
+
+// ── get_usage ────────────────────────────────────────────────────────
 
 server.tool(
   "get_usage",
@@ -111,8 +157,13 @@ server.tool(
       const header = "Date                 | Service                          | Amount";
       const sep = "---------------------|----------------------------------|--------";
       const rows = records.map((r) => {
-        const date = new Date(r.timestamp ?? r.date ?? r.created_at).toISOString().replace("T", " ").slice(0, 19);
-        const service = (r.service ?? r.description ?? r.url ?? "unknown").slice(0, 32).padEnd(32);
+        const date = new Date(r.timestamp ?? r.date ?? r.created_at)
+          .toISOString()
+          .replace("T", " ")
+          .slice(0, 19);
+        const service = (r.service ?? r.description ?? r.url ?? "unknown")
+          .slice(0, 32)
+          .padEnd(32);
         const amount = `$${r.amount ?? r.cost ?? "?"}`;
         return `${date}  | ${service} | ${amount}`;
       });
