@@ -60,9 +60,9 @@ server.tool(
   async ({ to, amount, network }) => {
     try {
       const data = await apiRequest("POST", "/api/pay", { to, amount, network });
-      const cost = data.cost ?? amount;
-      const balance = data.balance ?? "unknown";
-      const header = data.header;
+      const cost = data.cost_usd ?? amount;
+      const balance = data.remaining_balance ?? "unknown";
+      const header = data.payment_header;
 
       return {
         content: [
