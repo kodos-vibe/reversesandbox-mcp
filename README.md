@@ -6,7 +6,7 @@ ReverseSandbox lets AI agents pay for x402 pay-per-use API services (web search,
 
 ## Quick Start
 
-1. **Get an API key** at [reversesandbox.com/dashboard](https://www.reversesandbox.com/dashboard)
+1. **Get an API key** at [reversesandbox.com/dashboard](https://app.reversesandbox.com/dashboard)
 2. **Add funds** to your account balance
 3. **Configure the MCP** in your AI client (see below)
 
@@ -21,7 +21,7 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "reversesandbox": {
       "command": "npx",
-      "args": ["-y", "reversesandbox-mcp"],
+      "args": ["-y", "@reverse_sandbox/mcp"],
       "env": {
         "RS_API_KEY": "your-api-key-here"
       }
@@ -33,7 +33,7 @@ Add to your `claude_desktop_config.json`:
 ### Claude Code
 
 ```bash
-claude mcp add reversesandbox -- npx -y reversesandbox-mcp
+claude mcp add reversesandbox -- npx -y @reverse_sandbox/mcp
 ```
 
 Then set your API key as an environment variable:
@@ -49,7 +49,7 @@ export RS_API_KEY="your-api-key-here"
   "mcpServers": {
     "reversesandbox": {
       "command": "npx",
-      "args": ["-y", "reversesandbox-mcp"],
+      "args": ["-y", "@reverse_sandbox/mcp"],
       "env": {
         "RS_API_KEY": "your-api-key-here"
       }

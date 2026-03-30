@@ -1,18 +1,31 @@
 {
-  "name": "reversesandbox-mcp",
-  "version": "0.1.0",
+  "name": "@reverse_sandbox/mcp",
+  "version": "0.2.0",
   "type": "module",
-  "description": "MCP server for ReverseSandbox — pay for x402 services without crypto",
+  "description": "MCP server for ReverseSandbox — pay for x402 services without crypto wallets",
   "bin": {
     "reversesandbox-mcp": "./index.mjs"
   },
   "main": "index.mjs",
+  "files": [
+    "index.mjs",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kodos-vibe/reversesandbox-mcp"
+  },
+  "homepage": "https://www.reversesandbox.com",
+  "author": "ReverseSandbox LLC",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0"
   },
   "engines": {
     "node": ">=18"
   },
-  "keywords": ["mcp", "x402", "payment", "ai-agent", "reversesandbox"],
-  "license": "MIT"
+  "keywords": ["mcp", "x402", "payment", "ai-agent", "reversesandbox", "crypto", "usdc"],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }
