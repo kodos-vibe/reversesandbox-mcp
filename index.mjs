@@ -5,12 +5,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 
 const RS_API_KEY = process.env.RS_API_KEY;
-const RS_API_URL = (process.env.RS_API_URL || "https://www.reversesandbox.com").replace(/\/$/, "");
+const RS_API_URL = (process.env.RS_API_URL || "https://app.reversesandbox.com").replace(/\/$/, "");
 
 function checkApiKey() {
   if (!RS_API_KEY) {
     throw new Error(
-      "RS_API_KEY environment variable is not set. Get your API key from https://www.reversesandbox.com/dashboard"
+      "RS_API_KEY environment variable is not set. Get your API key from https://app.reversesandbox.com/dashboard"
     );
   }
 }
@@ -35,7 +35,7 @@ async function apiRequest(method, path, body) {
     const text = await res.text().catch(() => "");
     if (res.status === 402) {
       throw new Error(
-        "Insufficient balance. Add funds at https://www.reversesandbox.com/dashboard"
+        "Insufficient balance. Add funds at https://app.reversesandbox.com/dashboard"
       );
     }
     throw new Error(`API error ${res.status}: ${text || res.statusText}`);
